@@ -26,20 +26,20 @@ reload_config
 # SOFTWARE
 ############################################################
 opkg update
-opkg install luci-app-https-dns-proxy
+opkg install stubby
 
 ############################################################
 # SCHEDULED TASKS
 ############################################################
 TEMP_FILE=$(mktemp)
-cat << EOF > $TEMP_FILE
+cat << EOF > ${TEMP_FILE}
 # Reboot at 4:30am every day
 # Note: To avoid infinite reboot loop, wait 70 seconds
 # and touch a file in /etc so clock will be set
 # properly to 4:31 on reboot before cron starts.
 30 4 * * * sleep 70 && touch /etc/banner && reboot
 EOF
-crontab $TEMP_FILE
+crontab ${TEMP_FILE}
 
 ############################################################
 # INTERFACES
@@ -55,36 +55,53 @@ uci set network.guest.ipaddr="192.168.3.1"
 uci set network.guest.netmask="255.255.255.0"
 
 uci commit network
-service network restart
-
-uci set dhcp.guest="dhcp"
-uci set dhcp.guest.interface="guest"
-uci set dhcp.guest.start="100"
-uci set dhcp.guest.limit="150"
-uci set dhcp.guest.leasetime="12h"
-
-uci commit dhcp
-service dnsmasq restart
+reload_config
 
 ############################################################
 # WIRELESS
 ############################################################
-uci set wireless.default_radio1.ssid="$DEFAULT_RADIO1_SSID"
+uci set wireless.default_radio1.ssid="${DEFAULT_RADIO1_SSID}"
 uci set wireless.default_radio1.encryption="sae-mixed"
-uci set wireless.default_radio1.key="$DEFAULT_RADIO1_KEY"
+uci set wireless.default_radio1.key="${DEFAULT_RADIO1_KEY}"
 uci set wireless.default_radio1.wpa_disable_eapol_key_retries="1"
 
 uci set wireless.guest="wifi-iface"
 uci set wireless.guest.device="radio1"
 uci set wireless.guest.mode="ap"
 uci set wireless.guest.network="guest"
-uci set wireless.guest.ssid="$GUEST_SSID"
+uci set wireless.guest.ssid="${GUEST_SSID}"
 uci set wireless.guest.encryption="sae-mixed"
-uci set wireless.guest.key="$GUEST_KEY"
+uci set wireless.guest.key="${GUEST_KEY}"
 uci set wireless.guest.wpa_disable_eapol_key_retries="1"
+uci set wireless.guest.isolate="1"
 
 uci commit wireless
-wifi reload
+reload_config
+
+############################################################
+# DHCP AND DNS
+############################################################
+uci set dhcp.guest="dhcp"
+uci set dhcp.guest.interface="guest"
+uci set dhcp.guest.start="100"
+uci set dhcp.guest.limit="150"
+uci set dhcp.guest.leasetime="12h"
+
+service dnsmasq stop
+
+uci set dhcp.@dnsmasq[0].noresolv="1"
+uci set dhcp.@dnsmasq[0].localuse="1"
+
+uci -q get stubby.global.listen_address \
+| sed -e "s/\s/\n/g;s/@/#/g" \
+| while read -r STUBBY_SERV
+do uci add_list dhcp.@dnsmasq[0].server="${STUBBY_SERV}"
+done
+
+uci commit dhcp
+reload_config
+
+service dnsmasq start
 
 ############################################################
 # FIREWALL
@@ -116,4 +133,9 @@ uci set firewall.guest_dhcp.family="ipv4"
 uci set firewall.guest_dhcp.target="ACCEPT"
 
 uci commit firewall
-service firewall restart
+reload_config
+
+############################################################
+# REBOOT
+############################################################
+reboot
