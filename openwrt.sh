@@ -60,13 +60,15 @@ reload_config
 ############################################################
 # WIRELESS
 ############################################################
+uci set wireless.default_radio0.disabled="1"
+
 uci set wireless.default_radio1.ssid="${DEFAULT_RADIO1_SSID}"
 uci set wireless.default_radio1.encryption="sae-mixed"
 uci set wireless.default_radio1.key="${DEFAULT_RADIO1_KEY}"
 uci set wireless.default_radio1.wpa_disable_eapol_key_retries="1"
 
 uci set wireless.guest="wifi-iface"
-uci set wireless.guest.device="radio1"
+uci set wireless.guest.device="radio0"
 uci set wireless.guest.mode="ap"
 uci set wireless.guest.network="guest"
 uci set wireless.guest.ssid="${GUEST_SSID}"
