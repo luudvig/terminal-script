@@ -42,6 +42,24 @@ EOF
 crontab ${TEMP_FILE}
 
 ############################################################
+# LED CONFIGURATION
+############################################################
+uci set system.led_wifi2g=led
+uci set system.led_wifi2g.name="WIFI2G"
+uci set system.led_wifi2g.sysfs="green:wifi2g"
+uci set system.led_wifi2g.trigger="none"
+uci set system.led_wifi2g.default="0"
+
+uci set system.led_wifi5g=led
+uci set system.led_wifi5g.name="WIFI5G"
+uci set system.led_wifi5g.sysfs="green:wifi5g"
+uci set system.led_wifi5g.trigger="none"
+uci set system.led_wifi5g.default="0"
+
+uci commit system
+reload_config
+
+############################################################
 # INTERFACES
 ############################################################
 uci set network.guest_dev="device"
