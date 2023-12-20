@@ -44,6 +44,9 @@ crontab ${TEMP_FILE}
 ############################################################
 # LED CONFIGURATION
 ############################################################
+uci set system.led_lan.mode="link"
+uci set system.led_wan.mode="link"
+
 uci set system.led_wifi2g=led
 uci set system.led_wifi2g.name="WIFI2G"
 uci set system.led_wifi2g.sysfs="green:wifi2g"
