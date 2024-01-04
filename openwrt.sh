@@ -26,7 +26,13 @@ reload_config
 # SOFTWARE
 ############################################################
 opkg update
-opkg install stubby
+opkg install python3-email python3-light python3-netifaces python3-urllib stubby
+
+############################################################
+# STARTUP
+############################################################
+sed -i "/^exit 0$/i/root/multicast-relay.py --interfaces br-guest br-lan --noSonosDiscovery\n" /etc/rc.local
+sed -i "/^exit 0$/i/root/openwrt_guest_cast_revert.sh\n" /etc/rc.local
 
 ############################################################
 # SCHEDULED TASKS
@@ -157,6 +163,101 @@ uci set firewall.guest_dhcp.target="ACCEPT"
 
 uci commit firewall
 reload_config
+
+############################################################
+# EXTRA
+############################################################
+wget -P /root https://raw.githubusercontent.com/alsmith/multicast-relay/master/multicast-relay.py
+chmod +x /root/multicast-relay.py
+
+cat << EOF > /root/openwrt_guest_cast_add.sh
+#!/bin/ash
+
+COUNT=0
+
+while read LEASE
+do
+COUNT=\$((COUNT + 1))
+echo "\${COUNT}: \${LEASE}"
+done < /tmp/dhcp.leases
+
+read -p "Choose client: " INDEX
+
+CLIENT=\$(sed "\${INDEX}q;d" /tmp/dhcp.leases | cut -d " " -f 2,3 -s)
+CAST=\$(grep -m 1 "\sChromecast\s" /tmp/dhcp.leases | cut -d " " -f 3 -s)
+
+uci del_list firewall.guest_mdns.src_mac="\${CLIENT%% *}"
+uci add_list firewall.guest_mdns.src_mac="\${CLIENT%% *}"
+uci -q delete firewall.guest_mdns.enabled
+
+uci del_list firewall.guest_ssdp.src_mac="\${CLIENT%% *}"
+uci add_list firewall.guest_ssdp.src_mac="\${CLIENT%% *}"
+uci -q delete firewall.guest_ssdp.enabled
+
+uci del_list firewall.guest_cast_from.src_ip="\${CLIENT##* }"
+uci add_list firewall.guest_cast_from.src_ip="\${CLIENT##* }"
+uci del_list firewall.guest_cast_from.dest_ip="\${CAST}"
+uci add_list firewall.guest_cast_from.dest_ip="\${CAST}"
+uci -q delete firewall.guest_cast_from.enabled
+
+uci del_list firewall.guest_cast_to.src_ip="\${CAST}"
+uci add_list firewall.guest_cast_to.src_ip="\${CAST}"
+uci del_list firewall.guest_cast_to.dest_ip="\${CLIENT##* }"
+uci add_list firewall.guest_cast_to.dest_ip="\${CLIENT##* }"
+uci -q delete firewall.guest_cast_to.enabled
+
+uci commit firewall
+reload_config
+EOF
+chmod +x /root/openwrt_guest_cast_add.sh
+
+cat << EOF > /root/openwrt_guest_cast_revert.sh
+#!/bin/ash
+
+uci -q delete firewall.guest_mdns
+uci set firewall.guest_mdns="rule"
+uci set firewall.guest_mdns.name="Allow-mDNS-Guest"
+uci set firewall.guest_mdns.src="guest"
+uci set firewall.guest_mdns.dest_ip="224.0.0.251"
+uci set firewall.guest_mdns.dest_port="5353"
+uci set firewall.guest_mdns.proto="udp"
+uci set firewall.guest_mdns.family="ipv4"
+uci set firewall.guest_mdns.target="ACCEPT"
+uci set firewall.guest_mdns.enabled="0"
+
+uci -q delete firewall.guest_ssdp
+uci set firewall.guest_ssdp="rule"
+uci set firewall.guest_ssdp.name="Allow-SSDP-Guest"
+uci set firewall.guest_ssdp.src="guest"
+uci set firewall.guest_ssdp.dest_ip="239.255.255.250"
+uci set firewall.guest_ssdp.dest_port="1900"
+uci set firewall.guest_ssdp.proto="udp"
+uci set firewall.guest_ssdp.family="ipv4"
+uci set firewall.guest_ssdp.target="ACCEPT"
+uci set firewall.guest_ssdp.enabled="0"
+
+uci -q delete firewall.guest_cast_from
+uci set firewall.guest_cast_from="rule"
+uci set firewall.guest_cast_from.name="Allow-Cast-From-Guest"
+uci set firewall.guest_cast_from.src="guest"
+uci set firewall.guest_cast_from.dest="lan"
+uci set firewall.guest_cast_from.family="ipv4"
+uci set firewall.guest_cast_from.target="ACCEPT"
+uci set firewall.guest_cast_from.enabled="0"
+
+uci -q delete firewall.guest_cast_to
+uci set firewall.guest_cast_to="rule"
+uci set firewall.guest_cast_to.name="Allow-Cast-To-Guest"
+uci set firewall.guest_cast_to.src="lan"
+uci set firewall.guest_cast_to.dest="guest"
+uci set firewall.guest_cast_to.family="ipv4"
+uci set firewall.guest_cast_to.target="ACCEPT"
+uci set firewall.guest_cast_to.enabled="0"
+
+uci commit firewall
+reload_config
+EOF
+chmod +x /root/openwrt_guest_cast_revert.sh
 
 ############################################################
 # REBOOT
