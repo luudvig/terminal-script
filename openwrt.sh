@@ -4,7 +4,6 @@ DEFAULT_RADIO1_SSID='<ssid>'
 DEFAULT_RADIO1_KEY='<key>'
 GUEST_SSID='<ssid>'
 GUEST_KEY='<key>'
-REDIRECT_CFS_PORT='<port>'
 
 ############################################################
 # SYSTEM
@@ -161,17 +160,6 @@ uci set firewall.guest_dhcp.dest_port="67"
 uci set firewall.guest_dhcp.proto="udp"
 uci set firewall.guest_dhcp.family="ipv4"
 uci set firewall.guest_dhcp.target="ACCEPT"
-
-uci set firewall.redirect_cfs=redirect
-uci set firewall.redirect_cfs.dest="lan"
-uci set firewall.redirect_cfs.target="DNAT"
-uci set firewall.redirect_cfs.name="CFS"
-uci set firewall.redirect_cfs.family="ipv4"
-uci set firewall.redirect_cfs.proto="tcp"
-uci set firewall.redirect_cfs.src="wan"
-uci set firewall.redirect_cfs.src_dport="${REDIRECT_CFS_PORT}"
-uci set firewall.redirect_cfs.dest_port="${REDIRECT_CFS_PORT}"
-uci set firewall.redirect_cfs.enabled="0"
 
 uci commit firewall
 reload_config
