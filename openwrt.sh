@@ -9,6 +9,7 @@ GUEST_KEY='<key>'
 # SYSTEM
 ############################################################
 uci set system.@system[0].zonename="Europe/Stockholm"
+uci set system.@system[0].timezone="CET-1CEST,M3.5.0,M10.5.0/3"
 
 uci commit system
 reload_config
@@ -87,6 +88,9 @@ reload_config
 ############################################################
 # WIRELESS
 ############################################################
+uci set wireless.radio0.country="SE"
+uci set wireless.radio1.country="SE"
+
 uci set wireless.default_radio0.disabled="1"
 
 uci set wireless.default_radio1.ssid="${DEFAULT_RADIO1_SSID}"
