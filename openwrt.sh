@@ -1,7 +1,7 @@
 #!/bin/ash
 
-DEFAULT_RADIO1_SSID='<ssid>'
-DEFAULT_RADIO1_KEY='<key>'
+DEFAULT_SSID='<ssid>'
+DEFAULT_KEY='<key>'
 GUEST_SSID='<ssid>'
 GUEST_KEY='<key>'
 
@@ -91,11 +91,15 @@ reload_config
 uci set wireless.radio0.country="SE"
 uci set wireless.radio1.country="SE"
 
+uci set wireless.default_radio0.ssid="${DEFAULT_SSID}"
+uci set wireless.default_radio0.encryption="sae-mixed"
+uci set wireless.default_radio0.key="${DEFAULT_KEY}"
+uci set wireless.default_radio0.wpa_disable_eapol_key_retries="1"
 uci set wireless.default_radio0.disabled="1"
 
-uci set wireless.default_radio1.ssid="${DEFAULT_RADIO1_SSID}"
+uci set wireless.default_radio1.ssid="${DEFAULT_SSID}"
 uci set wireless.default_radio1.encryption="sae-mixed"
-uci set wireless.default_radio1.key="${DEFAULT_RADIO1_KEY}"
+uci set wireless.default_radio1.key="${DEFAULT_KEY}"
 uci set wireless.default_radio1.wpa_disable_eapol_key_retries="1"
 
 uci set wireless.guest_radio0="wifi-iface"
