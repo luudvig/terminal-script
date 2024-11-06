@@ -15,8 +15,8 @@ quality_choices = [4320, 2160, 1440, 1080, 720, 480, 360, 240, 144]
 parser = ArgumentParser()
 parser.add_argument('-d', '--download', action='store_true', help='download selected video')
 parser.add_argument('-i', '--id', action='store_true', help='query argument is treated as video id')
-parser.add_argument('-q', '--quality', default=1080, type=int, choices=quality_choices, help='max quality (default: 1080)', metavar='QUALITY')
-parser.add_argument('-r', '--results', default=5, type=int, choices=range(1, 51), help='max results when searching (default: 5)', metavar='RESULTS')
+parser.add_argument('-q', '--quality', default=720, type=int, choices=quality_choices, help='max quality (default: 720)', metavar='QUALITY')
+parser.add_argument('-r', '--results', default=10, type=int, choices=range(1, 51), help='max results when searching (default: 10)', metavar='RESULTS')
 parser.add_argument('-s', '--sort', action='store_const', const='date', default='relevance', help='sort by date when searching')
 required_args = parser.add_argument_group('required arguments')
 required_args.add_argument('-k', '--api-key', required=True, help='api key to use when searching')
@@ -38,12 +38,12 @@ else:
     videos_response = get('{0}/videos'.format(locator), headers=headers, params=videos_payload)
     videos_items = videos_response.json()['items']
 
-    for c, i in enumerate(videos_items, 1):
-        print('{0:>{1}}. [{2} {3} {4}] {5} ({6})'.format(c, 1 if len(videos_items) < 10 else 2, i['snippet']['publishedAt'][:10], i['id'],
+    for c, i in enumerate(videos_items):
+        print('{0:>{1}}. [{2} {3} {4}] {5} ({6})'.format(c, 1 if len(videos_items) <= 10 else 2, i['snippet']['publishedAt'][:10], i['id'],
             i['snippet']['channelTitle'], i['snippet']['title'], i['contentDetails']['duration'][2:].lower()))
 
     try:
-        webpage_id = videos_items[int(input('[ytsearch] Select video to stream/download [1]: ') or '1') - 1]['id']
+        webpage_id = videos_items[int(input('[ytsearch] Select video to stream/download [0]: ') or '0')]['id']
     except KeyboardInterrupt:
         exit('')
 
@@ -75,7 +75,7 @@ else:
         dump(ytdlp_result, ytdlp_temp)
 
     try:
-        run([bin_ytdlp, '--output', '{0}/Downloads/{1}'.format(environ['HOME'], ytdlp_result['_filename']),
+        run([bin_ytdlp, '--output', '{0}/Videos/{1}'.format(environ['HOME'], ytdlp_result['_filename']),
             '--load-info-json', ytdlp_temp.name, '--format', ytdlp_result['format_id']])
     except KeyboardInterrupt:
         exit()
