@@ -24,11 +24,12 @@ required_args.add_argument('query', nargs='+', help='query to use when searching
 args = parser.parse_args()
 
 bin_vlc, bin_ytdlp = run(['which', 'vlc', 'yt-dlp'], stdout=PIPE, check=True, text=True).stdout.splitlines()
+url_query = fullmatch(r'https:\/\/(www\.)?youtu\.?be(\.com)?\/(watch\?v=)?[a-zA-Z0-9-_]{11}', args.query[0])
 
-if args.id or fullmatch(r'https:\/\/(www\.)?youtu\.?be(\.com)?\/(watch\?v=)?[a-zA-Z0-9-_]{11}', args.query[0]):
+if args.id or url_query:
     webpage_id = args.query[0][-11:]
 else:
-    locator = 'https://youtube.googleapis.com/youtube/v3'
+    locator = 'https://www.googleapis.com/youtube/v3'
     headers = {'accept': 'application/json'}
 
     search_payload = {'part': 'id', 'maxResults': args.results, 'order': args.sort, 'q': ' '.join(args.query), 'type': 'video', 'key': args.api_key}
@@ -51,9 +52,12 @@ ytdlp_selector = ''.join(['bestvideo{1}[vcodec^=av01]+bestaudio{0}/best{1}{2}/be
     .format('[ext=m4a]', '[height<={0}][height>{1}]'.format(quality_choices[c - 1], q), '[vcodec^=avc1]')
     for c, q in enumerate(quality_choices + [0]) if q < args.quality])[:-1]
 
+ytdlp_url = 'https://www.youtube.com/watch?v={0}'.format(webpage_id)
+if not url_query:
+    print('[ytsearch] {0}'.format(ytdlp_url))
+
 try:
-    ytdlp_process = run([bin_ytdlp, '--dump-json', '--format', ytdlp_selector, 'https://www.youtube.com/watch?v={0}'.format(webpage_id)],
-        stdout=PIPE, check=True, text=True)
+    ytdlp_process = run([bin_ytdlp, '--dump-json', '--format', ytdlp_selector, ytdlp_url], stdout=PIPE, check=True, text=True)
 except CalledProcessError:
     exit()
 
