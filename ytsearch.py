@@ -16,7 +16,6 @@ parser = ArgumentParser()
 parser.add_argument('-d', '--download', action='store_true', help='download selected video')
 parser.add_argument('-i', '--id', action='store_true', help='query argument is treated as video id')
 parser.add_argument('-q', '--quality', default=720, type=int, choices=quality_choices, help='max quality (default: 720)', metavar='QUALITY')
-parser.add_argument('-r', '--results', default=10, type=int, choices=range(1, 51), help='max results when searching (default: 10)', metavar='RESULTS')
 parser.add_argument('-s', '--sort', action='store_const', const='date', default='relevance', help='sort by date when searching')
 required_args = parser.add_argument_group('required arguments')
 required_args.add_argument('-k', '--api-key', required=True, help='api key to use when searching')
@@ -26,27 +25,37 @@ args = parser.parse_args()
 bin_vlc, bin_ytdlp = run(['which', 'vlc', 'yt-dlp'], stdout=PIPE, check=True, text=True).stdout.splitlines()
 url_query = fullmatch(r'https:\/\/(www\.)?youtu\.?be(\.com)?\/(watch\?v=)?[a-zA-Z0-9-_]{11}', args.query[0])
 
-if args.id or url_query:
+if url_query or args.id:
     webpage_id = args.query[0][-11:]
 else:
     locator = 'https://www.googleapis.com/youtube/v3'
     headers = {'accept': 'application/json'}
 
-    search_payload = {'part': 'id', 'maxResults': args.results, 'order': args.sort, 'q': ' '.join(args.query), 'type': 'video', 'key': args.api_key}
+    search_payload = {'part': 'id', 'maxResults': 50, 'order': args.sort, 'q': ' '.join(args.query), 'type': 'video', 'key': args.api_key}
     search_response = get('{0}/search'.format(locator), headers=headers, params=search_payload)
+    search_items = search_response.json()['items'][:search_payload['maxResults']]
 
-    videos_payload = {'part': ['contentDetails', 'snippet'], 'id': [i['id']['videoId'] for i in search_response.json()['items']], 'key': args.api_key}
+    videos_payload = {'part': ['contentDetails', 'snippet'], 'id': [i['id']['videoId'] for i in search_items], 'key': args.api_key}
     videos_response = get('{0}/videos'.format(locator), headers=headers, params=videos_payload)
     videos_items = videos_response.json()['items']
 
-    for c, i in enumerate(videos_items):
-        print('{0:>{1}}. [{2} {3} {4}] {5} ({6})'.format(c, 1 if len(videos_items) <= 10 else 2, i['snippet']['publishedAt'][:10], i['id'],
-            i['snippet']['channelTitle'], i['snippet']['title'], i['contentDetails']['duration'][2:].lower()))
+    for c, i in enumerate(videos_items, 1):
+        print('{0:>2}. [{1} {2} {3}] {4} ({5})'.format(c, i['snippet']['publishedAt'][:10], i['id'], i['snippet']['channelTitle'],
+            i['snippet']['title'], i['contentDetails']['duration'][2:].lower()))
 
-    try:
-        webpage_id = videos_items[int(input('[ytsearch] Select video to stream/download [0]: ') or '0')]['id']
-    except KeyboardInterrupt:
-        exit('')
+        if c not in {10, len(videos_items)}:
+            continue
+
+        try:
+            user_input = input('[ytsearch] Select video to stream/download [continue]: ')
+        except KeyboardInterrupt:
+            exit('')
+
+        if user_input.isdigit() and 0 < (user_select := int(user_input)) <= c:
+            webpage_id = videos_items[user_select - 1]['id']
+            break
+    else:
+        exit()
 
 ytdlp_selector = ''.join(['bestvideo{1}[vcodec^=av01]+bestaudio{0}/best{1}{2}/bestvideo{1}{2}+bestaudio{0}/'
     .format('[ext=m4a]', '[height<={0}][height>{1}]'.format(quality_choices[c - 1], q), '[vcodec^=avc1]')
