@@ -186,48 +186,48 @@ reload_config
 # EXTRA
 ############################################################
 wget -P /root https://raw.githubusercontent.com/alsmith/multicast-relay/master/multicast-relay.py
-chmod +x /root/multicast-relay.py
+chmod a-w,+x /root/multicast-relay.py
 
 cat << EOF > /root/openwrt_guest_cast_add.sh
 #!/bin/ash
 
-COUNT=0
+LEASE_FILE="/tmp/dhcp.leases"
 
 while read LEASE
 do
-COUNT=\$((COUNT + 1))
+COUNT=\$((\${COUNT:-0} + 1))
 echo "\${COUNT}: \${LEASE}"
-done < /tmp/dhcp.leases
+done < "\${LEASE_FILE}"
 
-read -p "Choose client: " INDEX
+read -p "Select sender: " SENDER
 
-CLIENT=\$(sed "\${INDEX}q;d" /tmp/dhcp.leases | cut -d " " -f 2,3 -s)
-CAST=\$(grep -m 1 "\sChromecast\s" /tmp/dhcp.leases | cut -d " " -f 3 -s)
+CAST_SEND=\$(sed "\${SENDER}q;d" "\${LEASE_FILE}" | cut -d " " -f 3 -s)
+CAST_RECV=\$(grep -m 1 "\sChromecast\s" "\${LEASE_FILE}" | cut -d " " -f 3 -s)
 
-uci del_list firewall.guest_mdns.src_mac="\${CLIENT%% *}"
-uci add_list firewall.guest_mdns.src_mac="\${CLIENT%% *}"
+uci del_list firewall.guest_mdns.src_ip="\${CAST_SEND}"
+uci add_list firewall.guest_mdns.src_ip="\${CAST_SEND}"
 uci -q delete firewall.guest_mdns.enabled
 
-uci del_list firewall.guest_ssdp.src_mac="\${CLIENT%% *}"
-uci add_list firewall.guest_ssdp.src_mac="\${CLIENT%% *}"
+uci del_list firewall.guest_ssdp.src_ip="\${CAST_SEND}"
+uci add_list firewall.guest_ssdp.src_ip="\${CAST_SEND}"
 uci -q delete firewall.guest_ssdp.enabled
 
-uci del_list firewall.guest_cast_from.src_ip="\${CLIENT##* }"
-uci add_list firewall.guest_cast_from.src_ip="\${CLIENT##* }"
-uci del_list firewall.guest_cast_from.dest_ip="\${CAST}"
-uci add_list firewall.guest_cast_from.dest_ip="\${CAST}"
+uci del_list firewall.guest_cast_from.src_ip="\${CAST_SEND}"
+uci add_list firewall.guest_cast_from.src_ip="\${CAST_SEND}"
+uci del_list firewall.guest_cast_from.dest_ip="\${CAST_RECV}"
+uci add_list firewall.guest_cast_from.dest_ip="\${CAST_RECV}"
 uci -q delete firewall.guest_cast_from.enabled
 
-uci del_list firewall.guest_cast_to.src_ip="\${CAST}"
-uci add_list firewall.guest_cast_to.src_ip="\${CAST}"
-uci del_list firewall.guest_cast_to.dest_ip="\${CLIENT##* }"
-uci add_list firewall.guest_cast_to.dest_ip="\${CLIENT##* }"
+uci del_list firewall.guest_cast_to.src_ip="\${CAST_RECV}"
+uci add_list firewall.guest_cast_to.src_ip="\${CAST_RECV}"
+uci del_list firewall.guest_cast_to.dest_ip="\${CAST_SEND}"
+uci add_list firewall.guest_cast_to.dest_ip="\${CAST_SEND}"
 uci -q delete firewall.guest_cast_to.enabled
 
 uci commit firewall
 reload_config
 EOF
-chmod +x /root/openwrt_guest_cast_add.sh
+chmod a-w,+x /root/openwrt_guest_cast_add.sh
 
 cat << EOF > /root/openwrt_guest_cast_revert.sh
 #!/bin/ash
@@ -275,7 +275,7 @@ uci set firewall.guest_cast_to.enabled="0"
 uci commit firewall
 reload_config
 EOF
-chmod +x /root/openwrt_guest_cast_revert.sh
+chmod a-w,+x /root/openwrt_guest_cast_revert.sh
 
 ############################################################
 # REBOOT
