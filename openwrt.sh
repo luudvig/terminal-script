@@ -42,11 +42,7 @@ sed -i "/^exit 0$/i/root/openwrt_guest_cast_revert.sh\n" /etc/rc.local
 ############################################################
 TEMP_FILE=$(mktemp)
 cat << EOF > ${TEMP_FILE}
-# Reboot at 4:30am every day
-# Note: To avoid infinite reboot loop, wait 70 seconds
-# and touch a file in /etc so clock will be set
-# properly to 4:31 on reboot before cron starts.
-30 4 * * * sleep 70 && touch /etc/banner && reboot
+29 4 * * * sleep 70 && touch /etc/banner && reboot
 EOF
 crontab ${TEMP_FILE}
 
@@ -80,13 +76,13 @@ uci set network.@device[0].ipv6="0"
 uci set network.wan6.disabled="1"
 
 uci set network.guest_dev="device"
-uci set network.guest_dev.type="bridge"
 uci set network.guest_dev.name="br-guest"
+uci set network.guest_dev.type="bridge"
 uci set network.guest_dev.ipv6="0"
 
 uci set network.guest="interface"
-uci set network.guest.proto="static"
 uci set network.guest.device="br-guest"
+uci set network.guest.proto="static"
 uci set network.guest.ipaddr="192.168.3.1"
 uci set network.guest.netmask="255.255.255.0"
 
@@ -112,8 +108,8 @@ uci set wireless.default_radio1.wpa_disable_eapol_key_retries="1"
 
 uci set wireless.guest_radio0="wifi-iface"
 uci set wireless.guest_radio0.device="radio0"
-uci set wireless.guest_radio0.mode="ap"
 uci set wireless.guest_radio0.network="guest"
+uci set wireless.guest_radio0.mode="ap"
 uci set wireless.guest_radio0.ssid="${GUEST_SSID}"
 uci set wireless.guest_radio0.encryption="sae-mixed"
 uci set wireless.guest_radio0.key="${GUEST_KEY}"
@@ -122,8 +118,8 @@ uci set wireless.guest_radio0.isolate="1"
 
 uci set wireless.guest_radio1="wifi-iface"
 uci set wireless.guest_radio1.device="radio1"
-uci set wireless.guest_radio1.mode="ap"
 uci set wireless.guest_radio1.network="guest"
+uci set wireless.guest_radio1.mode="ap"
 uci set wireless.guest_radio1.ssid="${GUEST_SSID}"
 uci set wireless.guest_radio1.encryption="sae-mixed"
 uci set wireless.guest_radio1.key="${GUEST_KEY}"
@@ -146,11 +142,12 @@ uci set dhcp.guest.interface="guest"
 uci set dhcp.guest.start="100"
 uci set dhcp.guest.limit="150"
 uci set dhcp.guest.leasetime="12h"
+uci set dhcp.guest.dhcpv4="server"
 
 service dnsmasq stop
 
+uci set dhcp.@dnsmasq[0].localuse="0"
 uci set dhcp.@dnsmasq[0].noresolv="1"
-uci set dhcp.@dnsmasq[0].localuse="1"
 
 uci -q get stubby.global.listen_address \
 | sed -e "s/\s/\n/g;s/@/#/g" \
