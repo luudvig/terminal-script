@@ -165,9 +165,9 @@ service dnsmasq start
 ############################################################
 uci show firewall \
 | sed -ne "s/\(.*\)=rule$/\1/p" \
-| while read -r RULE_NAME
-do ( [ -z "$(uci -q get ${RULE_NAME}.family)" ] && uci set ${RULE_NAME}.family="ipv4" ) \
-|| ( [ "$(uci -q get ${RULE_NAME}.family)" == "ipv6" ] && uci set ${RULE_NAME}.enabled="0" )
+| while read -r RULE_KEY
+do ( [ -z "$(uci -q get ${RULE_KEY}.family)" ] && uci set ${RULE_KEY}.family="ipv4" ) \
+|| ( [ "$(uci -q get ${RULE_KEY}.family)" == "ipv6" ] && uci set ${RULE_KEY}.enabled="0" )
 done
 
 uci set firewall.guest="zone"
@@ -219,7 +219,7 @@ done < "\${LEASE_FILE}"
 
 read -p "Select sender: " SENDER
 
-CAST_SEND=\$(sed "\${SENDER}q;d" "\${LEASE_FILE}" | cut -d " " -f 3 -s)
+CAST_SEND=\$(sed -e "\${SENDER}q;d" "\${LEASE_FILE}" | cut -d " " -f 3 -s)
 CAST_RECV=\$(grep -m 1 "\sChromecast\s" "\${LEASE_FILE}" | cut -d " " -f 3 -s)
 
 uci del_list firewall.guest_mdns.src_ip="\${CAST_SEND}"
