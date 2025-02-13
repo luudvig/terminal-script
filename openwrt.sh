@@ -32,8 +32,6 @@ opkg install python3-email python3-light python3-netifaces python3-urllib stubby
 ############################################################
 # STARTUP
 ############################################################
-service odhcpd disable
-
 sed -i "/^exit 0$/i/root/multicast-relay.py --interfaces br-guest br-lan --noSonosDiscovery\n" /etc/rc.local
 sed -i "/^exit 0$/i/root/openwrt_guest_cast_revert.sh\n" /etc/rc.local
 
@@ -70,15 +68,9 @@ reload_config
 ############################################################
 # INTERFACES
 ############################################################
-uci delete network.lan.ip6assign
-
-uci set network.@device[0].ipv6="0"
-uci set network.wan6.disabled="1"
-
 uci set network.guest_dev="device"
 uci set network.guest_dev.name="br-guest"
 uci set network.guest_dev.type="bridge"
-uci set network.guest_dev.ipv6="0"
 
 uci set network.guest="interface"
 uci set network.guest.device="br-guest"
@@ -132,11 +124,6 @@ reload_config
 ############################################################
 # DHCP AND DNS
 ############################################################
-uci delete dhcp.lan.dhcpv6
-uci delete dhcp.lan.ra
-uci delete dhcp.lan.ra_slaac
-uci delete dhcp.lan.ra_flags
-
 uci set dhcp.guest="dhcp"
 uci set dhcp.guest.interface="guest"
 uci set dhcp.guest.start="100"
@@ -163,13 +150,6 @@ service dnsmasq start
 ############################################################
 # FIREWALL
 ############################################################
-uci show firewall \
-| sed -ne "s/\(.*\)=rule$/\1/p" \
-| while read -r RULE_KEY
-do ( [ -z "$(uci -q get ${RULE_KEY}.family)" ] && uci set ${RULE_KEY}.family="ipv4" ) \
-|| ( [ "$(uci -q get ${RULE_KEY}.family)" == "ipv6" ] && uci set ${RULE_KEY}.enabled="0" )
-done
-
 uci set firewall.guest="zone"
 uci set firewall.guest.name="guest"
 uci set firewall.guest.network="guest"
@@ -186,7 +166,6 @@ uci set firewall.guest_dns.name="Allow-DNS-Guest"
 uci set firewall.guest_dns.src="guest"
 uci set firewall.guest_dns.dest_port="53"
 uci set firewall.guest_dns.proto="tcp udp"
-uci set firewall.guest_dns.family="ipv4"
 uci set firewall.guest_dns.target="ACCEPT"
 
 uci set firewall.guest_dhcp="rule"
