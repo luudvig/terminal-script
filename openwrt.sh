@@ -71,6 +71,7 @@ reload_config
 uci set network.guest_dev="device"
 uci set network.guest_dev.name="br-guest"
 uci set network.guest_dev.type="bridge"
+uci set network.guest_dev.ipv6="0"
 
 uci set network.guest="interface"
 uci set network.guest.device="br-guest"
@@ -166,6 +167,7 @@ uci set firewall.guest_dns.name="Allow-DNS-Guest"
 uci set firewall.guest_dns.src="guest"
 uci set firewall.guest_dns.dest_port="53"
 uci set firewall.guest_dns.proto="tcp udp"
+uci set firewall.guest_dns.family="ipv4"
 uci set firewall.guest_dns.target="ACCEPT"
 
 uci set firewall.guest_dhcp="rule"
